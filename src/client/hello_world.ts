@@ -17,37 +17,16 @@ import * as borsh from 'borsh';
 
 import {getPayer, getRpcUrl, createKeypairFromFile} from './utils';
 
-/**
- * Connection to the network
- */
 let connection: Connection;
 
-/**
- * Keypair associated to the fees' payer
- */
 let payer: Keypair;
 
-/**
- * Hello world's program id
- */
 let programId: PublicKey;
 
-/**
- * The public key of the account we are saying hello to
- */
 let greetedPubkey: PublicKey;
 
-/**
- * Path to program files
- */
 const PROGRAM_PATH = path.resolve(__dirname, '../../dist/program');
 
-/**
- * Path to program shared object file which should be deployed on chain.
- * This file is created when running either:
- *   - `npm run build:program-c`
- *   - `npm run build:program-rust`
- */
 const PROGRAM_SO_PATH = path.join(PROGRAM_PATH, 'helloworld.so');
 
 /**
@@ -56,9 +35,6 @@ const PROGRAM_SO_PATH = path.join(PROGRAM_PATH, 'helloworld.so');
  */
 const PROGRAM_KEYPAIR_PATH = path.join(PROGRAM_PATH, 'helloworld-keypair.json');
 
-/**
- * The state of a greeting account managed by the hello world program
- */
 class GreetingAccount {
   counter = 0;
   constructor(fields: {counter: number} | undefined = undefined) {
@@ -127,7 +103,13 @@ export async function establishPayer(): Promise<void> {
     'containing',
     lamports / LAMPORTS_PER_SOL,
     'SOL to pay for fees',
+    fees / LAMPORTS_PER_SOL
   );
+}
+
+export async function getBalance(): Promise<number> {
+  let lamports = await connection.getBalance(payer.publicKey);
+  return lamports / LAMPORTS_PER_SOL;
 }
 
 /**
@@ -200,10 +182,14 @@ export async function checkProgram(): Promise<void> {
  */
 export async function sayHello(): Promise<void> {
   console.log('Saying hello to', greetedPubkey.toBase58());
+
+  const data = Buffer.alloc(4);
+  const length = data.write('neil');
+  console.log('length', length, 'programId', programId);
   const instruction = new TransactionInstruction({
     keys: [{pubkey: greetedPubkey, isSigner: false, isWritable: true}],
     programId,
-    data: Buffer.alloc(0), // All instructions are hellos
+    data, // All instructions are hellos
   });
   await sendAndConfirmTransaction(
     connection,

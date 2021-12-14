@@ -8,6 +8,7 @@ import {
   checkProgram,
   sayHello,
   reportGreetings,
+  getBalance,
 } from './hello_world';
 
 async function main() {
@@ -19,6 +20,8 @@ async function main() {
   // Determine who pays for the fees
   await establishPayer();
 
+  const startingBalance = await getBalance();
+
   // Check if the program has been deployed
   await checkProgram();
 
@@ -28,7 +31,9 @@ async function main() {
   // Find out how many times that account has been greeted
   await reportGreetings();
 
-  console.log('Success');
+  const balance = await getBalance();
+
+  console.log('Success. Fees were', '$' + (startingBalance - balance) * 175, startingBalance - balance);
 }
 
 main().then(

@@ -26,6 +26,10 @@ pub fn process_instruction(
 ) -> ProgramResult {
     msg!("Hello World Rust program entrypoint");
 
+    for x in _instruction_data {
+        msg!("{}", x);
+    }
+
     // Iterating accounts is safer then indexing
     let accounts_iter = &mut accounts.iter();
 
