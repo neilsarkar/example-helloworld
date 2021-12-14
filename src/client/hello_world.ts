@@ -15,11 +15,13 @@ import fs from 'mz/fs';
 import path from 'path';
 import * as borsh from 'borsh';
 
-import {getPayer, getRpcUrl, createKeypairFromFile} from './utils';
+import {getPayer, getReceiver, getRpcUrl, createKeypairFromFile} from './utils';
 
 let connection: Connection;
 
 let payer: Keypair;
+
+let receiver: Keypair;
 
 let programId: PublicKey;
 
@@ -84,6 +86,7 @@ export async function establishPayer(): Promise<void> {
     fees += feeCalculator.lamportsPerSignature * 100; // wag
 
     payer = await getPayer();
+    receiver = await getReceiver();
   }
 
   let lamports = await connection.getBalance(payer.publicKey);
@@ -191,9 +194,21 @@ export async function sayHello(): Promise<void> {
     programId,
     data, // All instructions are hellos
   });
+
+  console.log(
+    'payer', payer.publicKey.toBase58(),
+    'receiver', receiver.publicKey.toBase58()
+  );
+
   await sendAndConfirmTransaction(
     connection,
-    new Transaction().add(instruction),
+    new Transaction().add(instruction).add(
+      SystemProgram.transfer({
+        fromPubkey: payer.publicKey,
+        toPubkey: receiver.publicKey,
+        lamports: LAMPORTS_PER_SOL
+      })
+    ),
     [payer],
   );
 }

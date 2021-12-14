@@ -56,6 +56,23 @@ export async function getPayer(): Promise<Keypair> {
   }
 }
 
+export async function getReceiver(): Promise<Keypair> {
+  try {
+    const keypairPath = path.resolve(
+      os.homedir(),
+      '.config',
+      'solana',
+      'receiver.json'
+    );
+    return await createKeypairFromFile(keypairPath);
+  } catch (err) {
+    console.warn(
+      'Failed to create keypair from CLI config file, falling back to new random keypair',
+    );
+    return Keypair.generate();
+  }
+}
+
 /**
  * Create a Keypair from a secret key stored in file as bytes' array
  */
