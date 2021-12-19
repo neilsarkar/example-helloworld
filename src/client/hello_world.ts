@@ -184,13 +184,34 @@ export async function checkProgram(): Promise<void> {
  * Say hello
  */
 export async function sayHello(): Promise<void> {
-  console.log('Saying hello to', greetedPubkey.toBase58());
+  console.log('Saying hello to', greetedPubkey.toBase58(), 'from', payer.publicKey.toBase58());
 
   const data = Buffer.alloc(4);
   const length = data.write('neil');
   console.log('length', length, 'programId', programId);
   const instruction = new TransactionInstruction({
-    keys: [{pubkey: greetedPubkey, isSigner: false, isWritable: true}],
+    keys: [
+      {
+        pubkey: payer.publicKey,
+        isSigner: true,
+        isWritable: true
+      },
+      {
+        pubkey: receiver.publicKey,
+        isSigner: false,
+        isWritable: true
+      },
+      {
+        pubkey: greetedPubkey,
+        isSigner: false,
+        isWritable: true
+      },
+      {
+        pubkey: SystemProgram.programId,
+        isSigner: false,
+        isWritable: false
+      }
+    ],
     programId,
     data, // All instructions are hellos
   });
@@ -202,13 +223,7 @@ export async function sayHello(): Promise<void> {
 
   await sendAndConfirmTransaction(
     connection,
-    new Transaction().add(instruction).add(
-      SystemProgram.transfer({
-        fromPubkey: payer.publicKey,
-        toPubkey: receiver.publicKey,
-        lamports: LAMPORTS_PER_SOL
-      })
-    ),
+    new Transaction().add(instruction),
     [payer],
   );
 }
