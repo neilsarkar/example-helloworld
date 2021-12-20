@@ -26,7 +26,8 @@
     "create-account": "solana-keygen new -o ~/.config/solana/receiver.json",
     "log": "solana logs",
     "shotgun": "yarn build && yarn deploy && yarn log",
-    "pretty": "prettier --write '{,src/**/}*.ts'"
+    "pretty": "prettier --write '{,src/**/}*.ts'",
+    "simulate": "SIMULATE=1 yarn start"
   },
   "dependencies": {
     "@solana/web3.js": "^1.7.0",

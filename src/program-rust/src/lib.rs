@@ -41,7 +41,7 @@ pub fn process_instruction(
 
     let system_account = next_account_info(accounts_iter)?;
 
-    msg!("payer: {} receiver: {} program: {}", payer_account.key, receiver_account.key, program_account.key);
+    msg!("payer: {} receiver: {} program: {} system: {} system: {}", payer_account.key, receiver_account.key, program_account.key, system_account.key, system_account.key);
 
     // The account must be owned by the program in order to modify its data
     if !payer_account.is_signer {

@@ -176,6 +176,7 @@ export async function checkProgram(): Promise<void> {
         programId,
       }),
     );
+
     await sendAndConfirmTransaction(connection, transaction, [payer]);
   }
 }
@@ -210,7 +211,7 @@ export async function sayHello(): Promise<void> {
         pubkey: SystemProgram.programId,
         isSigner: false,
         isWritable: false
-      }
+      },
     ],
     programId,
     data, // All instructions are hellos
@@ -220,6 +221,12 @@ export async function sayHello(): Promise<void> {
     'payer', payer.publicKey.toBase58(),
     'receiver', receiver.publicKey.toBase58()
   );
+
+  if (process.env.SIMULATE) {
+    const simulation = await connection.simulateTransaction(new Transaction().add(instruction), [payer]);
+    console.log('simulation', simulation);
+    return;
+  }
 
   await sendAndConfirmTransaction(
     connection,
