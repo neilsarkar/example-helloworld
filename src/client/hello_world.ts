@@ -185,11 +185,9 @@ export async function checkProgram(): Promise<void> {
  * Say hello
  */
 export async function sayHello(): Promise<void> {
-  console.log('Saying hello to', greetedPubkey.toBase58(), 'from', payer.publicKey.toBase58());
+  const data = Buffer.alloc(8);
+  data.writeBigUInt64LE(BigInt(1 * LAMPORTS_PER_SOL));
 
-  const data = Buffer.alloc(4);
-  const length = data.write('neil');
-  console.log('length', length, 'programId', programId);
   const instruction = new TransactionInstruction({
     keys: [
       {
@@ -223,8 +221,14 @@ export async function sayHello(): Promise<void> {
   );
 
   if (process.env.SIMULATE) {
-    const simulation = await connection.simulateTransaction(new Transaction().add(instruction), [payer]);
-    console.log('simulation', simulation);
+    const balance = await connection.getBalance(payer.publicKey);
+    const simulation = await connection.simulateTransaction(new Transaction().add(instruction), [payer], true);
+    console.log('logs', simulation.value?.logs);
+    if (!simulation.value?.accounts) {
+      console.log('simulation failed', simulation);
+    } else {
+      console.log('simulation would cost', (balance - simulation.value.accounts[0].lamports) / LAMPORTS_PER_SOL, 'SOL');
+    }
     return;
   }
 

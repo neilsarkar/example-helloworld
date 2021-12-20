@@ -1,3 +1,5 @@
+use std::convert::TryInto;
+
 use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
@@ -25,9 +27,9 @@ entrypoint!(process_instruction);
 pub fn process_instruction(
     program_id: &Pubkey, // Public key of the account the hello world program was loaded into
     accounts: &[AccountInfo], // The account to say hello to
-    _instruction_data: &[u8], // Ignored, all helloworld instructions are hellos
+    input: &[u8],
 ) -> ProgramResult {
-    msg!("Instruction data: {:?}", _instruction_data);
+    msg!("Instruction data: {:?}", input);
 
     // Iterating accounts is safer then indexing
     let accounts_iter = &mut accounts.iter();
@@ -59,14 +61,14 @@ pub fn process_instruction(
     }
 
     // to get amount from instruction data:
-    //
-    // let amount = input
-    //     .get(..8)
-    //     .and_then(|slice| slice.try_into().ok())
-    //     .map(u64::from_le_bytes)
-    //     .ok_or(ProgramError::InvalidInstructionData)?;
+    let amount = input
+        .get(..8)
+        .and_then(|slice| slice.try_into().ok())
+        .map(u64::from_le_bytes)
+        .ok_or(ProgramError::InvalidInstructionData)?;
 
-    let amount = 1_000_000_000;
+    // 1 SOL
+    // let amount = 1_000_000_000;
     invoke(
         &transfer(payer_account.key, receiver_account.key, amount),
         &[payer_account.clone(), receiver_account.clone()]
