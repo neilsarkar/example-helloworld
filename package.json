@@ -23,11 +23,12 @@
     "test": "yarn test:program-rust",
     "deploy": "solana program deploy dist/program/helloworld.so",
     "build": "yarn build:program-rust",
-    "create-account": "solana-keygen new -o ~/.config/solana/receiver.json",
+    "create-account": "NAME=receiver solana-keygen new -o ~/.config/solana/$NAME.json",
     "log": "solana logs",
     "shotgun": "yarn build && yarn deploy && yarn log",
     "pretty": "prettier --write '{,src/**/}*.ts'",
-    "simulate": "SIMULATE=1 yarn start"
+    "simulate": "SIMULATE=1 yarn start",
+    "program:regen-keypair": "yarn clean && yarn build"
   },
   "dependencies": {
     "@solana/web3.js": "^1.7.0",

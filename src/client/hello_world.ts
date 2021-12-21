@@ -23,6 +23,8 @@ let payer: Keypair;
 
 let receiver: Keypair;
 
+let receiver1: Keypair;
+
 let programId: PublicKey;
 
 let greetedPubkey: PublicKey;
@@ -87,6 +89,7 @@ export async function establishPayer(): Promise<void> {
 
     payer = await getPayer();
     receiver = await getReceiver();
+    receiver1 = await getReceiver('receiver1');
   }
 
   let lamports = await connection.getBalance(payer.publicKey);
@@ -111,7 +114,7 @@ export async function establishPayer(): Promise<void> {
 }
 
 export async function getBalance(): Promise<number> {
-  let lamports = await connection.getBalance(payer.publicKey);
+  const lamports = await connection.getBalance(payer.publicKey);
   return lamports / LAMPORTS_PER_SOL;
 }
 
@@ -196,16 +199,6 @@ export async function sayHello(): Promise<void> {
         isWritable: true
       },
       {
-        pubkey: receiver.publicKey,
-        isSigner: false,
-        isWritable: true
-      },
-      {
-        pubkey: greetedPubkey,
-        isSigner: false,
-        isWritable: true
-      },
-      {
         pubkey: SystemProgram.programId,
         isSigner: false,
         isWritable: false
@@ -224,7 +217,7 @@ export async function sayHello(): Promise<void> {
     const balance = await connection.getBalance(payer.publicKey);
     const simulation = await connection.simulateTransaction(new Transaction().add(instruction), [payer], true);
     console.log('logs', simulation.value?.logs);
-    if (!simulation.value?.accounts) {
+    if (!simulation.value?.accounts || simulation.value.accounts.length == 0) {
       console.log('simulation failed', simulation);
     } else {
       console.log('simulation would cost', (balance - simulation.value.accounts[0].lamports) / LAMPORTS_PER_SOL, 'SOL');

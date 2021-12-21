@@ -1,6 +1,5 @@
-use std::convert::TryInto;
+use std::{convert::TryInto};
 
-use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     system_instruction::{transfer},
@@ -13,75 +12,71 @@ use solana_program::{
     system_program::ID as SYSTEM_PROGRAM_ID,
 };
 
-/// Define the type of state stored in accounts
-#[derive(BorshSerialize, BorshDeserialize, Debug)]
-pub struct GreetingAccount {
-    /// number of greetings
-    pub counter: u32,
-}
-
 // Declare and export the program's entrypoint
 entrypoint!(process_instruction);
 
-// Program entrypoint's implementation
+// Accounts expected:
+// 0. `[signer, writable]` Debit lamports
+// 1. `[]`                 System program
+// 2. `[writable]`         Credit lamports/n
+// n. `[writable]`         Credit lamports/n
 pub fn process_instruction(
-    program_id: &Pubkey, // Public key of the account the hello world program was loaded into
-    accounts: &[AccountInfo], // The account to say hello to
+    _program_id: &Pubkey, // Public key of the account the hello world program was loaded into
+    program_accounts: &[AccountInfo], // The account to say hello to
     input: &[u8],
 ) -> ProgramResult {
-    msg!("Instruction data: {:?}", input);
-
     // Iterating accounts is safer then indexing
-    let accounts_iter = &mut accounts.iter();
+    let accounts_iter = &mut program_accounts.iter();
 
-    // Get the account to say hello to
+    // First account should be signed account of payer
     let payer_account = next_account_info(accounts_iter)?;
-
-    let receiver_account = next_account_info(accounts_iter)?;
-
-    let program_account = next_account_info(accounts_iter)?;
-
-    let system_account = next_account_info(accounts_iter)?;
-
-    msg!("payer: {} receiver: {} program: {} system: {} system: {}", payer_account.key, receiver_account.key, program_account.key, system_account.key, system_account.key);
-
-    // The account must be owned by the program in order to modify its data
     if !payer_account.is_signer {
         return Err(ProgramError::MissingRequiredSignature);
     }
 
-    if program_account.owner != program_id {
-        msg!("Greeted account does not have the correct program id");
-        return Err(ProgramError::IncorrectProgramId);
-    }
-
+    // Second account should be system account for transfer
+    let system_account = next_account_info(accounts_iter)?;
     if system_account.key.ne(&SYSTEM_PROGRAM_ID) {
-        msg!("System account not specified as fourth account");
+        msg!("System account not specified as second account");
         return Err(ProgramError::IncorrectProgramId);
     }
 
-    // to get amount from instruction data:
+    // Collect remaining accounts
+    let mut count = 0;
+    let mut payee_accounts: Vec<&AccountInfo> = Vec::new();
+    loop {
+        let account = match next_account_info(accounts_iter) {
+            Ok(account_info) => account_info,
+            Err(ProgramError::NotEnoughAccountKeys) => break,
+            Err(error) => {
+                msg!("{}", error);
+                panic!("{}", error);
+            }
+        };
+        payee_accounts.push(account);
+        count += 1;
+    }
+    if count <= 0 || count > 10 {
+        msg!("Tried to split between {} accounts, max is 10", count);
+        return Err(ProgramError::NotEnoughAccountKeys);
+    }
+
+    // 1 SOL
+    // let amount = 1_000_000_000;
+    // parse amount as u64 from 8 little-endian u8s of instruction data
     let amount = input
         .get(..8)
         .and_then(|slice| slice.try_into().ok())
         .map(u64::from_le_bytes)
         .ok_or(ProgramError::InvalidInstructionData)?;
 
-    // 1 SOL
-    // let amount = 1_000_000_000;
-    invoke(
-        &transfer(payer_account.key, receiver_account.key, amount),
-        &[payer_account.clone(), receiver_account.clone()]
-    )?;
-
-    msg!("transfer {} lamports from {:?} to {:?}: done", amount, payer_account.key, receiver_account.key);
-
-    // Increment and store the number of times the account has been greeted
-    let mut greeting_account = GreetingAccount::try_from_slice(&program_account.data.borrow())?;
-    greeting_account.counter += 1;
-    greeting_account.serialize(&mut &mut program_account.data.borrow_mut()[..])?;
-
-    msg!("Greeted {} time(s)!", greeting_account.counter);
+    for account in payee_accounts {
+        invoke(
+            &transfer(payer_account.key, account.key, amount / count),
+            &[payer_account.clone(), account.clone()]
+        )?;
+        msg!("transferred {} lamports from {:?} to {:?}", amount / count, payer_account.key, account.key);
+    }
 
     Ok(())
 }

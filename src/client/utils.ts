@@ -56,13 +56,13 @@ export async function getPayer(): Promise<Keypair> {
   }
 }
 
-export async function getReceiver(): Promise<Keypair> {
+export async function getReceiver(name = 'receiver'): Promise<Keypair> {
   try {
     const keypairPath = path.resolve(
       os.homedir(),
       '.config',
       'solana',
-      'receiver.json'
+      `${name}.json`
     );
     return await createKeypairFromFile(keypairPath);
   } catch (err) {
