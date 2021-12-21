@@ -48,10 +48,7 @@ pub fn process_instruction(
         let account = match next_account_info(accounts_iter) {
             Ok(account_info) => account_info,
             Err(ProgramError::NotEnoughAccountKeys) => break,
-            Err(error) => {
-                msg!("{}", error);
-                panic!("{}", error);
-            }
+            Err(error) => panic!("{}", error),
         };
         payee_accounts.push(account);
         count += 1;
@@ -61,8 +58,6 @@ pub fn process_instruction(
         return Err(ProgramError::NotEnoughAccountKeys);
     }
 
-    // 1 SOL
-    // let amount = 1_000_000_000;
     // parse amount as u64 from 8 little-endian u8s of instruction data
     let amount = input
         .get(..8)
@@ -70,6 +65,7 @@ pub fn process_instruction(
         .map(u64::from_le_bytes)
         .ok_or(ProgramError::InvalidInstructionData)?;
 
+    // for each provided account up to 10, split the amount
     for account in payee_accounts {
         invoke(
             &transfer(payer_account.key, account.key, amount / count),
@@ -79,55 +75,4 @@ pub fn process_instruction(
     }
 
     Ok(())
-}
-
-// Sanity tests
-#[cfg(test)]
-mod test {
-    use super::*;
-    use solana_program::clock::Epoch;
-    use std::mem;
-
-    #[test]
-    fn test_sanity() {
-        let program_id = Pubkey::default();
-        let key = Pubkey::default();
-        let mut lamports = 0;
-        let mut data = vec![0; mem::size_of::<u32>()];
-        let owner = Pubkey::default();
-        let account = AccountInfo::new(
-            &key,
-            false,
-            true,
-            &mut lamports,
-            &mut data,
-            &owner,
-            false,
-            Epoch::default(),
-        );
-        let instruction_data: Vec<u8> = Vec::new();
-
-        let accounts = vec![account];
-
-        assert_eq!(
-            GreetingAccount::try_from_slice(&accounts[0].data.borrow())
-                .unwrap()
-                .counter,
-            0
-        );
-        process_instruction(&program_id, &accounts, &instruction_data).unwrap();
-        assert_eq!(
-            GreetingAccount::try_from_slice(&accounts[0].data.borrow())
-                .unwrap()
-                .counter,
-            1
-        );
-        process_instruction(&program_id, &accounts, &instruction_data).unwrap();
-        assert_eq!(
-            GreetingAccount::try_from_slice(&accounts[0].data.borrow())
-                .unwrap()
-                .counter,
-            2
-        );
-    }
 }
